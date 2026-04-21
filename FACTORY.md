@@ -1,6 +1,6 @@
 # Continuous Claude for Factory Droid
 
-Autonomous SDLC pipeline adapted for Factory Droid. Factory port includes 5 hooks, 9 skills, 2 droids, and optional external tools.
+Autonomous SDLC pipeline adapted for Factory Droid. Factory port includes 6 repo hooks, optional FastEdit/RTK hook wiring, 9 skills, 2 droids, and optional external tools.
 
 ## Hooks (Factory Droid Compatible)
 
@@ -12,6 +12,7 @@ Autonomous SDLC pipeline adapted for Factory Droid. Factory port includes 5 hook
 | `post-edit-diagnostics.mjs` | PostToolUse:Edit\|Create\|Write\|MultiEdit | Type errors + lint after edits (requires `tldr` CLI) |
 | `pre-compact.mjs` | PreCompact | Auto-handoff before context compaction |
 | `auto-handoff-stop.mjs` | Stop | Blocks stop when context is high and suggests a handoff |
+| `fastedit-hook` | PreToolUse:Edit\|MultiEdit\|Update | Redirects edit flows through FastEdit when available |
 
 ## Factory Port Structure
 
@@ -26,12 +27,14 @@ Autonomous SDLC pipeline adapted for Factory Droid. Factory port includes 5 hook
 |------|-------------|---------|
 | [tldr](https://github.com/parcadei/tldr-code) | Token-efficient code analysis (AST, call graphs, diagnostics) | `pip install tldr-code` |
 | [rtk](https://github.com/rtk-ai/rtk) | Shell command auto-rewrites for token savings | `cargo install rtk` or `brew install rtk` |
+| [ouros](https://github.com/parcadei/ouros) | Sandboxed Python REPL with fork/save/resume for research flows | `cargo install ouros` |
+| [fastedit](https://github.com/parcadei/fastedit) | Fast edit interception for edit tools when `fastedit-hook` is available | `pip install fastedits` |
 
 ## Installation
 
 1. Clone this repo to your project or use as a template
 2. Copy `.factory/settings.json` to your project's `.factory/` directory
-3. (Optional) Install `tldr` for read/diagnostic hooks and `rtk` for execute rewrites
+3. (Optional) Install `tldr` for read/diagnostic hooks, `rtk` for execute rewrites, and `fastedits` if you want FastEdit edit interception
 
 ## Configuration
 
@@ -45,6 +48,10 @@ The project-level Factory wiring in `.factory/settings.json` enables:
   },
   "hooks": {
     "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Update",
+        "hooks": [{ "type": "command", "command": "fastedit-hook" }]
+      },
       {
         "matcher": "Execute",
         "hooks": [{ "type": "command", "command": "bash \"$FACTORY_PROJECT_DIR\"/.factory/hooks/rtk-rewrite.sh" }]

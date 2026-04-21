@@ -22,7 +22,7 @@ Factory Droid ships a repo-local port under `.factory/` with hooks, skills, droi
   hooks/           5 hooks (.mjs — cross-platform)
   settings.json    hook wiring + env config
 .factory/                   Factory Droid version
-  hooks/           5 hooks + RTK installer/wrapper
+  hooks/           6 repo hooks + FastEdit/RTK wiring
   skills/          9 workflow skill ports
   droids/          worker + oracle
   settings.json    hook + statusline wiring
