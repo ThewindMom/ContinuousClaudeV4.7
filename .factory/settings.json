@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.factory.ai/reference/settings-reference",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$FACTORY_PROJECT_DIR\"/.factory/hooks/tldr-read.mjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Create|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$FACTORY_PROJECT_DIR\"/.factory/hooks/post-edit-diagnostics.mjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$FACTORY_PROJECT_DIR\"/.factory/hooks/pre-compact.mjs"
+          }
+        ]
+      }
+    ]
+  }
+}

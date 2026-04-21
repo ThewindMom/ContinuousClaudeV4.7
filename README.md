@@ -1,15 +1,29 @@
 # Continuous Claude v4.7
 
-Autonomous software development pipeline for Claude Code. Skills orchestrate; workers build; the project improves with every task.
+Autonomous software development pipeline for Claude Code and Factory Droid. Skills orchestrate; workers build; the project improves with every task.
+
+> **Factory Droid Users:** See [FACTORY.md](FACTORY.md) for the adapted version with 3 hooks optimized for Factory's native capabilities.
+
+## Factory Droid Support
+
+This repo is adapted for both Claude Code and Factory Droid:
+
+- **Claude Code**: Use `.claude/` directory with 5 hooks
+- **Factory Droid**: Use `.factory/` directory with 3 optimized hooks
+
+Factory Droid removes redundant hooks (status line is native) and adapts the output format. See [FACTORY.md](FACTORY.md) for details.
 
 ## What's in here
 
 ```
-.claude/
+.claude/                    Claude Code version
   skills/          9 workflow skills
   agents/          worker + oracle
   hooks/           5 hooks (.mjs — cross-platform)
   settings.json    hook wiring + env config
+.factory/                   Factory Droid version
+  hooks/           3 hooks (.mjs — cross-platform)
+  settings.json    hook wiring
 scripts/
   readiness.sh     assess project health (27 criteria, 5 levels)
   readiness-fix.sh auto-remediate gaps
