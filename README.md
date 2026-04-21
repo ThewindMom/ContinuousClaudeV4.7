@@ -2,16 +2,16 @@
 
 Autonomous software development pipeline for Claude Code and Factory Droid. Skills orchestrate; workers build; the project improves with every task.
 
-> **Factory Droid Users:** See [FACTORY.md](FACTORY.md) for the adapted version with 3 hooks optimized for Factory's native capabilities.
+> **Factory Droid Users:** See [FACTORY.md](FACTORY.md) for the repo-local Factory port with hooks, skills, droids, RTK wiring, and statusline support.
 
 ## Factory Droid Support
 
 This repo is adapted for both Claude Code and Factory Droid:
 
 - **Claude Code**: Use `.claude/` directory with 5 hooks
-- **Factory Droid**: Use `.factory/` directory with 3 optimized hooks
+- **Factory Droid**: Use `.factory/` directory with hooks, skills, droids, RTK wiring, and custom statusline support
 
-Factory Droid removes redundant hooks (status line is native) and adapts the output format. See [FACTORY.md](FACTORY.md) for details.
+Factory Droid ships a repo-local port under `.factory/` with hooks, skills, droids, RTK wiring, and a custom status line. See [FACTORY.md](FACTORY.md) for details.
 
 ## What's in here
 
@@ -22,8 +22,10 @@ Factory Droid removes redundant hooks (status line is native) and adapts the out
   hooks/           5 hooks (.mjs — cross-platform)
   settings.json    hook wiring + env config
 .factory/                   Factory Droid version
-  hooks/           3 hooks (.mjs — cross-platform)
-  settings.json    hook wiring
+  hooks/           5 hooks + RTK installer/wrapper
+  skills/          9 workflow skill ports
+  droids/          worker + oracle
+  settings.json    hook + statusline wiring
 scripts/
   readiness.sh     assess project health (27 criteria, 5 levels)
   readiness-fix.sh auto-remediate gaps

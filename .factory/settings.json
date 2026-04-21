@@ -1,7 +1,20 @@
 {
   "$schema": "https://docs.factory.ai/reference/settings-reference",
+  "statusLine": {
+    "type": "command",
+    "command": "node \"$FACTORY_PROJECT_DIR\"/.factory/hooks/statusline.mjs"
+  },
   "hooks": {
     "PreToolUse": [
+      {
+        "matcher": "Execute",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$FACTORY_PROJECT_DIR\"/.factory/hooks/rtk-rewrite.sh"
+          }
+        ]
+      },
       {
         "matcher": "Read",
         "hooks": [
@@ -15,7 +28,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Create|Write|MultiEdit",
+        "matcher": "Edit|Create|Write|MultiEdit|Update",
         "hooks": [
           {
             "type": "command",
@@ -32,6 +45,16 @@
           {
             "type": "command",
             "command": "node \"$FACTORY_PROJECT_DIR\"/.factory/hooks/pre-compact.mjs"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$FACTORY_PROJECT_DIR\"/.factory/hooks/auto-handoff-stop.mjs"
           }
         ]
       }
