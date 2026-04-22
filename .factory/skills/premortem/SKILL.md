@@ -1,6 +1,7 @@
 ---
 name: premortem
 description: Pre-implementation failure analysis — first-principles retrospective with tiger/elephant risk classification
+disable-model-invocation: true
 ---
 
 Factory Droid adaptation notes:

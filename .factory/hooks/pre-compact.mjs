@@ -11,7 +11,34 @@
  * Factory Droid compatible version.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join, basename } from 'path';
+import { join } from 'path';
+
+function parseTodoState(rawTodos) {
+  if (Array.isArray(rawTodos)) {
+    return rawTodos.map((todo, index) => ({
+      id: todo.id || `todo-${index}`,
+      content: todo.content || '',
+      status: todo.status || 'pending',
+    }));
+  }
+
+  if (typeof rawTodos !== 'string') return [];
+
+  return rawTodos
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const match = line.match(/^(?:\d+\.)?\s*\[(completed|in_progress|pending)\]\s+(.+)$/);
+      if (!match) return null;
+      return {
+        id: `todo-${index}`,
+        status: match[1],
+        content: match[2].trim(),
+      };
+    })
+    .filter(Boolean);
+}
 
 function parseTranscript(transcriptPath) {
   const summary = {
@@ -24,7 +51,11 @@ function parseTranscript(transcriptPath) {
   if (!existsSync(transcriptPath)) return summary;
 
   let content;
-  try { content = readFileSync(transcriptPath, 'utf-8'); } catch { return summary; }
+  try {
+    content = readFileSync(transcriptPath, 'utf-8');
+  } catch {
+    return summary;
+  }
 
   const allToolCalls = [];
   let lastAssistant = '';
@@ -32,10 +63,17 @@ function parseTranscript(transcriptPath) {
   for (const line of content.split('\n')) {
     if (!line.trim()) continue;
     let entry;
-    try { entry = JSON.parse(line); } catch { continue; }
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
 
     // Last assistant message
-    if ((entry.role === 'assistant' || entry.type === 'assistant') && typeof entry.content === 'string') {
+    if (
+      (entry.role === 'assistant' || entry.type === 'assistant') &&
+      typeof entry.content === 'string'
+    ) {
       lastAssistant = entry.content;
     }
 
@@ -45,15 +83,10 @@ function parseTranscript(transcriptPath) {
       const tc = { name: toolName, input: entry.tool_input, success: true };
 
       if (toolName.toLowerCase() === 'todowrite') {
-        const todos = (entry.tool_input || {}).todos || [];
-        summary.lastTodos = todos.map((t, i) => ({
-          id: t.id || `todo-${i}`,
-          content: t.content || '',
-          status: t.status || 'pending',
-        }));
+        summary.lastTodos = parseTodoState((entry.tool_input || {}).todos);
       }
 
-      if (['edit', 'write', 'create'].includes(toolName.toLowerCase())) {
+      if (['edit', 'write', 'create', 'multiedit', 'update'].includes(toolName.toLowerCase())) {
         const fp = (entry.tool_input || {}).file_path || (entry.tool_input || {}).path;
         if (fp) summary.filesModified.add(fp);
       }
@@ -73,7 +106,9 @@ function parseTranscript(transcriptPath) {
         if (exitCode != null && exitCode !== 0) {
           if (allToolCalls.length) allToolCalls[allToolCalls.length - 1].success = false;
           const msg = result.stderr || result.error || 'Command failed';
-          const cmd = allToolCalls.length ? (allToolCalls[allToolCalls.length - 1].input || {}).command || 'unknown' : 'unknown';
+          const cmd = allToolCalls.length
+            ? (allToolCalls[allToolCalls.length - 1].input || {}).command || 'unknown'
+            : 'unknown';
           summary.errors.push(`${cmd}: ${msg.slice(0, 200)}`);
         }
       }
@@ -93,20 +128,40 @@ function parseTranscript(transcriptPath) {
 function generateHandoff(summary, sessionName) {
   const ts = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
   const lines = [
-    '---', `date: ${ts}`, 'type: auto-handoff', 'trigger: pre-compact-auto',
-    `session: ${sessionName}`, '---', '',
-    '# Auto-Handoff (PreCompact)', '',
-    'This handoff was automatically generated before context compaction.', '',
-    '## In Progress', '',
+    '---',
+    `date: ${ts}`,
+    'type: auto-handoff',
+    'trigger: pre-compact-auto',
+    `session: ${sessionName}`,
+    '---',
+    '',
+    '# Auto-Handoff (PreCompact)',
+    '',
+    'This handoff was automatically generated before context compaction.',
+    '',
+    '## In Progress',
+    '',
   ];
 
   if (summary.lastTodos.length) {
-    const inProgress = summary.lastTodos.filter(t => t.status === 'in_progress');
-    const pending = summary.lastTodos.filter(t => t.status === 'pending');
-    const completed = summary.lastTodos.filter(t => t.status === 'completed');
-    if (inProgress.length) { lines.push('**Active:**'); inProgress.forEach(t => lines.push(`- [>] ${t.content}`)); lines.push(''); }
-    if (pending.length) { lines.push('**Pending:**'); pending.forEach(t => lines.push(`- [ ] ${t.content}`)); lines.push(''); }
-    if (completed.length) { lines.push('**Completed this session:**'); completed.forEach(t => lines.push(`- [x] ${t.content}`)); lines.push(''); }
+    const inProgress = summary.lastTodos.filter((t) => t.status === 'in_progress');
+    const pending = summary.lastTodos.filter((t) => t.status === 'pending');
+    const completed = summary.lastTodos.filter((t) => t.status === 'completed');
+    if (inProgress.length) {
+      lines.push('**Active:**');
+      inProgress.forEach((t) => lines.push(`- [>] ${t.content}`));
+      lines.push('');
+    }
+    if (pending.length) {
+      lines.push('**Pending:**');
+      pending.forEach((t) => lines.push(`- [ ] ${t.content}`));
+      lines.push('');
+    }
+    if (completed.length) {
+      lines.push('**Completed this session:**');
+      completed.forEach((t) => lines.push(`- [x] ${t.content}`));
+      lines.push('');
+    }
   } else {
     lines.push('No TodoWrite state captured.', '');
   }
@@ -123,13 +178,13 @@ function generateHandoff(summary, sessionName) {
 
   lines.push('## Files Modified', '');
   const files = [...summary.filesModified];
-  if (files.length) files.forEach(f => lines.push(`- ${f}`));
+  if (files.length) files.forEach((f) => lines.push(`- ${f}`));
   else lines.push('No files modified.');
   lines.push('');
 
   if (summary.errors.length) {
     lines.push('## Errors Encountered', '');
-    summary.errors.forEach(e => lines.push('```', e, '```'));
+    summary.errors.forEach((e) => lines.push('```', e, '```'));
     lines.push('');
   }
 
@@ -141,11 +196,15 @@ function generateHandoff(summary, sessionName) {
   } else lines.push('No assistant message captured.');
   lines.push('');
 
-  lines.push('## Suggested Next Steps', '',
+  lines.push(
+    '## Suggested Next Steps',
+    '',
     '1. Review the "In Progress" section for current task state',
     '2. Check "Errors Encountered" if debugging issues',
     '3. Read modified files to understand recent changes',
-    '4. Continue from where session left off', '');
+    '4. Continue from where session left off',
+    '',
+  );
 
   return lines.join('\n');
 }
@@ -166,7 +225,10 @@ function main() {
     const handoffDir = join(projectDir, 'thoughts', 'shared', 'handoffs', sessionName);
     mkdirSync(handoffDir, { recursive: true });
 
-    const ts = new Date().toISOString().replace(/:/g, '-').replace(/\.\d+Z$/, '');
+    const ts = new Date()
+      .toISOString()
+      .replace(/:/g, '-')
+      .replace(/\.\d+Z$/, '');
     const filename = `auto-handoff-${ts}.md`;
     writeFileSync(join(handoffDir, filename), content);
 

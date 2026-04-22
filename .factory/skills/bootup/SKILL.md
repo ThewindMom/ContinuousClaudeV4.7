@@ -1,6 +1,7 @@
 ---
 name: bootup
 description: Get a project agent-ready — readiness setup + mode selection
+disable-model-invocation: true
 ---
 
 Factory Droid adaptation notes:

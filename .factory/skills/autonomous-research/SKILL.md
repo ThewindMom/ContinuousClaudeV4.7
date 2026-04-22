@@ -1,6 +1,7 @@
 ---
 name: autonomous-research
 description: Looping research pipeline — hypotheses deepen via Ouros sessions, artifacts flow back
+disable-model-invocation: true
 ---
 
 Factory Droid adaptation notes:

@@ -1,6 +1,7 @@
 ---
 name: upgrade-harness
 description: Extend the ouros sandbox with new external functions (bridge functions, security policy, tests)
+disable-model-invocation: true
 ---
 
 Factory Droid adaptation notes:

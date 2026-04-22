@@ -22,22 +22,57 @@ import { execSync } from 'child_process';
 import { extname, basename } from 'path';
 
 const CODE_EXTENSIONS = new Set([
-  '.py', '.ts', '.tsx', '.js', '.jsx', '.mjs',
-  '.go', '.rs', '.java', '.kt',
-  '.c', '.cpp', '.cc', '.h', '.hpp',
-  '.rb', '.php', '.swift', '.cs', '.scala',
-  '.ex', '.exs', '.lua',
+  '.py',
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.go',
+  '.rs',
+  '.java',
+  '.kt',
+  '.c',
+  '.cpp',
+  '.cc',
+  '.h',
+  '.hpp',
+  '.rb',
+  '.php',
+  '.swift',
+  '.cs',
+  '.scala',
+  '.ex',
+  '.exs',
+  '.lua',
 ]);
 
 const BYPASS_PATTERNS = [
-  /\.json$/, /\.yaml$/, /\.yml$/, /\.toml$/, /\.md$/, /\.txt$/,
-  /\.env/, /\.gitignore$/, /Makefile$/, /Dockerfile$/,
+  /\.json$/,
+  /\.yaml$/,
+  /\.yml$/,
+  /\.toml$/,
+  /\.md$/,
+  /\.txt$/,
+  /\.env/,
+  /\.gitignore$/,
+  /Makefile$/,
+  /Dockerfile$/,
   // Test files — need full context for implementation
-  /test_.*\.py$/, /.*_test\.py$/, /.*\.test\.[tj]sx?$/, /.*\.spec\.[tj]sx?$/,
-  /.*_test\.go$/, /.*_test\.rs$/, /.*_spec\.rb$/, /.*Tests?\.kt$/,
-  /.*Tests?\.swift$/, /.*Tests?\.cs$/, /.*_test\.exs?$/,
+  /test_.*\.py$/,
+  /.*_test\.py$/,
+  /.*\.test\.[tj]sx?$/,
+  /.*\.spec\.[tj]sx?$/,
+  /.*_test\.go$/,
+  /.*_test\.rs$/,
+  /.*_spec\.rb$/,
+  /.*Tests?\.kt$/,
+  /.*Tests?\.swift$/,
+  /.*Tests?\.cs$/,
+  /.*_test\.exs?$/,
   // Own hooks and skills — we edit these
-  /\.factory\/hooks\//, /\.factory\/skills\//,
+  /\.factory\/hooks\//,
+  /\.factory\/skills\//,
 ];
 
 const SIZE_THRESHOLD = 1500; // ~50 lines
@@ -94,67 +129,108 @@ function formatNavMap(info, fileName) {
 
 function main() {
   let data;
-  try { data = JSON.parse(readFileSync(0, 'utf-8')); } catch { console.log('{}'); return; }
+  try {
+    data = JSON.parse(readFileSync(0, 'utf-8'));
+  } catch {
+    console.log('{}');
+    return;
+  }
 
-  if (data.tool_name !== 'Read') { console.log('{}'); return; }
+  if (data.tool_name !== 'Read') {
+    console.log('{}');
+    return;
+  }
 
   const toolInput = data.tool_input || {};
   const filePath = toolInput.file_path || '';
   const ext = extname(filePath);
 
   // Pass through: non-code files
-  if (!CODE_EXTENSIONS.has(ext)) { console.log('{}'); return; }
+  if (!CODE_EXTENSIONS.has(ext)) {
+    console.log('{}');
+    return;
+  }
 
   // Pass through: bypassed patterns
-  if (BYPASS_PATTERNS.some(p => p.test(filePath))) { console.log('{}'); return; }
+  if (BYPASS_PATTERNS.some((p) => p.test(filePath))) {
+    console.log('{}');
+    return;
+  }
 
   // Pass through: targeted reads (offset/limit already set)
-  if (toolInput.offset || (toolInput.limit && toolInput.limit < 100)) { console.log('{}'); return; }
+  const hasTargetedRead =
+    Object.prototype.hasOwnProperty.call(toolInput, 'offset') ||
+    Object.prototype.hasOwnProperty.call(toolInput, 'limit');
+  if (hasTargetedRead) {
+    console.log('{}');
+    return;
+  }
 
   // Pass through: small files
   let fileSize;
-  try { fileSize = statSync(filePath).size; } catch { console.log('{}'); return; }
-  if (fileSize < SIZE_THRESHOLD) { console.log('{}'); return; }
+  try {
+    fileSize = statSync(filePath).size;
+  } catch {
+    console.log('{}');
+    return;
+  }
+  if (fileSize < SIZE_THRESHOLD) {
+    console.log('{}');
+    return;
+  }
 
   // Run tldr extract — falls through if tldr not installed
   let info;
   try {
-    const out = execSync(`tldr extract "${filePath}" --format json`, {
-      encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'],
+    const out = execSync(`tldr extract "${filePath}"`, {
+      encoding: 'utf-8',
+      timeout: 10000,
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
     info = JSON.parse(out);
-  } catch { console.log('{}'); return; }
+  } catch {
+    console.log('{}');
+    return;
+  }
 
   // Build nav map
   const fileName = basename(filePath);
   const parts = formatNavMap(info, fileName);
 
   // Only inject if we got meaningful content
-  if (!parts.some(p => p.startsWith('## '))) { console.log('{}'); return; }
+  if (!parts.some((p) => p.startsWith('## '))) {
+    console.log('{}');
+    return;
+  }
 
   parts.push('', '---', 'Read specific lines: offset=N limit=M');
 
   // Truncation limits based on file size
   let truncateLimit;
-  if (fileSize < 3000) truncateLimit = undefined;      // ~50-100 lines: read full, just inject nav
-  else if (fileSize < 10000) truncateLimit = 200;       // ~100-300 lines
-  else truncateLimit = 150;                              // 300+ lines
+  if (fileSize < 3000)
+    truncateLimit = undefined; // ~50-100 lines: read full, just inject nav
+  else if (fileSize < 10000)
+    truncateLimit = 200; // ~100-300 lines
+  else truncateLimit = 150; // 300+ lines
 
   const updatedInput = { file_path: filePath };
   if (truncateLimit) updatedInput.limit = truncateLimit;
 
   let additionalContext = `[Nav Map: ${fileName}]\n\n${parts.join('\n')}`;
-  if (truncateLimit) additionalContext += `\nFile truncated to ${truncateLimit} lines. Use offset/limit for more.`;
+  if (truncateLimit)
+    additionalContext += `\nFile truncated to ${truncateLimit} lines. Use offset/limit for more.`;
 
   // Factory Droid JSON output format
-  console.log(JSON.stringify({
-    hookSpecificOutput: {
-      hookEventName: 'PreToolUse',
-      permissionDecision: 'allow',
-      updatedInput,
-      additionalContext,
-    },
-  }));
+  console.log(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'allow',
+        updatedInput,
+        additionalContext,
+      },
+    }),
+  );
 }
 
 main();

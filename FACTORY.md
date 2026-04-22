@@ -1,6 +1,6 @@
 # Continuous Claude for Factory Droid
 
-Autonomous SDLC pipeline adapted for Factory Droid. Factory port includes 6 repo hooks, optional FastEdit/RTK hook wiring, 9 skills, 2 droids, and optional external tools.
+Autonomous SDLC pipeline adapted for Factory Droid. Factory port includes 7 repo hooks, optional FastEdit/RTK hook wiring, 9 skills, 2 droids, and optional external tools.
 
 ## Hooks (Factory Droid Compatible)
 
@@ -11,6 +11,7 @@ Autonomous SDLC pipeline adapted for Factory Droid. Factory port includes 6 repo
 | `tldr-read.mjs` | PreToolUse:Read | Injects structural nav map for large code files (requires `tldr` CLI) |
 | `post-edit-diagnostics.mjs` | PostToolUse:Edit\|Create\|Write\|MultiEdit | Type errors + lint after edits (requires `tldr` CLI) |
 | `pre-compact.mjs` | PreCompact | Auto-handoff before context compaction |
+| `session-start-context.mjs` | SessionStart | Injects startup/resume/clear context and prepares common local env paths |
 | `auto-handoff-stop.mjs` | Stop | Blocks stop when context is high and suggests a handoff |
 | `fastedit-hook` | PreToolUse:Edit\|MultiEdit\|Update | Redirects edit flows through FastEdit when available |
 
@@ -73,6 +74,12 @@ The project-level Factory wiring in `.factory/settings.json` enables:
         "hooks": [{ "type": "command", "command": "node \"$FACTORY_PROJECT_DIR\"/.factory/hooks/pre-compact.mjs" }]
       }
     ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [{ "type": "command", "command": "node \"$FACTORY_PROJECT_DIR\"/.factory/hooks/session-start-context.mjs", "timeout": 10 }]
+      }
+    ],
     "Stop": [
       {
         "hooks": [{ "type": "command", "command": "node \"$FACTORY_PROJECT_DIR\"/.factory/hooks/auto-handoff-stop.mjs" }]
@@ -99,6 +106,8 @@ The original workflow has been ported into `.factory/skills/` and `.factory/droi
 
 - Skills: `autonomous`, `autonomous-research`, `bootup`, `create-handoff`, `premortem`, `research`, `resume-handoff`, `review`, `upgrade-harness`
 - Droids: `worker`, `oracle`
+
+To preserve the original explicit command-driven UX, the repo-local workflow skills remain slash-invocable but disable automatic model invocation.
 
 The original Claude Code definitions remain in `.claude/` for comparison and maintenance.
 

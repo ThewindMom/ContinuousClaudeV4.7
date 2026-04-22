@@ -11,7 +11,7 @@ This repo is adapted for both Claude Code and Factory Droid:
 - **Claude Code**: Use `.claude/` directory with 5 hooks
 - **Factory Droid**: Use `.factory/` directory with hooks, skills, droids, RTK wiring, and custom statusline support
 
-Factory Droid ships a repo-local port under `.factory/` with hooks, skills, droids, RTK wiring, and a custom status line. See [FACTORY.md](FACTORY.md) for details.
+Factory Droid ships a repo-local port under `.factory/` with hooks, skills, droids, RTK wiring, a custom status line, and SessionStart context injection. See [FACTORY.md](FACTORY.md) for details.
 
 ## What's in here
 
@@ -22,10 +22,10 @@ Factory Droid ships a repo-local port under `.factory/` with hooks, skills, droi
   hooks/           5 hooks (.mjs — cross-platform)
   settings.json    hook wiring + env config
 .factory/                   Factory Droid version
-  hooks/           6 repo hooks + FastEdit/RTK wiring
+  hooks/           7 repo hooks + FastEdit/RTK wiring
   skills/          9 workflow skill ports
   droids/          worker + oracle
-  settings.json    hook + statusline wiring
+  settings.json    hook + statusline + SessionStart wiring
 scripts/
   readiness.sh     assess project health (27 criteria, 5 levels)
   readiness-fix.sh auto-remediate gaps
@@ -49,9 +49,13 @@ tools/
 | `/resume-handoff` | Resume an autonomous session from handoff |
 | `/upgrade-harness` | Add new external functions to the Ouros sandbox |
 
+Factory repo-local workflow skills stay slash-invocable and disable automatic model invocation so Factory behavior stays close to the original explicit Claude command entrypoints.
+
 ## Hooks
 
-All hooks are plain `.mjs` (ES modules). No build step, no dependencies — Node.js is guaranteed wherever Claude Code runs.
+### Claude Code hooks
+
+Claude Code hooks are plain `.mjs` (ES modules). No build step, no dependencies — Node.js is guaranteed wherever Claude Code runs.
 
 | Hook | Event | Purpose |
 |------|-------|---------|
@@ -61,7 +65,21 @@ All hooks are plain `.mjs` (ES modules). No build step, no dependencies — Node
 | `pre-compact.mjs` | PreCompact | Writes auto-handoff YAML before context compaction |
 | `auto-handoff-stop.mjs` | Stop | Blocks at 85% context usage to force handoff before data loss |
 
-Hooks that use `tldr` (tldr-read, post-edit-diagnostics) fall through silently if tldr is not installed.
+### Factory Droid hooks
+
+The Factory port uses 7 repo hook files plus optional `fastedit-hook` wiring:
+
+| Hook | Event | Purpose |
+|------|-------|---------|
+| `statusline.mjs` | statusLine | Shows context usage, git state, and latest handoff goal/now |
+| `rtk-rewrite.sh` | PreToolUse:Execute | Rewrites shell commands through RTK when rewrite rules apply |
+| `tldr-read.mjs` | PreToolUse:Read | Injects structural nav map for large code files |
+| `post-edit-diagnostics.mjs` | PostToolUse | Runs type checker + linter after edits |
+| `pre-compact.mjs` | PreCompact | Writes an auto-handoff before context compaction |
+| `session-start-context.mjs` | SessionStart | Injects startup/resume/clear context and prepares common local env paths |
+| `auto-handoff-stop.mjs` | Stop | Blocks stop when context is high and suggests a handoff |
+
+Factory hooks that use `tldr` (tldr-read, post-edit-diagnostics) fall through silently if `tldr` is not installed. See [FACTORY.md](FACTORY.md) for the full repo-local Factory wiring.
 
 ## Dependencies
 

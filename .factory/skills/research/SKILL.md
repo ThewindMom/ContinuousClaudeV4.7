@@ -1,6 +1,7 @@
 ---
 name: research
 description: Exploratory research via Ouros RLM — token-efficient reasoning with persistent REPL state
+disable-model-invocation: true
 ---
 
 Factory Droid adaptation notes:

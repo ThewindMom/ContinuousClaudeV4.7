@@ -1,6 +1,7 @@
 ---
 name: review
 description: Structural + semantic code review — bugbot L1/L2 facts + tldr analysis + Claude Code reasoning
+disable-model-invocation: true
 ---
 
 Factory Droid adaptation notes:

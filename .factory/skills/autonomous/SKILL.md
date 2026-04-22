@@ -1,6 +1,7 @@
 ---
 name: autonomous
 description: SDLC pipeline — assess plan prepare execute validate evolve
+disable-model-invocation: true
 ---
 
 Factory Droid adaptation notes:
